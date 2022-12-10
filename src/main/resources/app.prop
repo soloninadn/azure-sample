@@ -1,0 +1,16 @@
+#AAD configuration
+aad.clientId=aee68402-55b9-4d1d-9884-0c6718665b65
+aad.authority=https://login.microsoftonline.com/common/
+aad.secretKey=YYK8Q~5ldijuywXtKdShrJu~HO4Sn8QW966PWbOo
+aad.redirectUriSignin=https://localhost:8443/msal4jsample/secure/aad
+aad.redirectUriGraph=https://localhost:8443/msal4jsample/graph/me
+aad.msGraphEndpointHost=https://graph.microsoft.com/
+
+#SSL configuration
+server.port=8443
+server.servlet.session.cookie.secure=true
+server.ssl.key-store=/Users/igorhadarin/apache-tomcat-9.0.70/keystore.p12
+server.ssl.key-store-password=password
+server.ssl.key-store-type=PKCS12
+server.ssl.key-alias=testCert
+server.ssl.key-password=password
