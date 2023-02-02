@@ -3,25 +3,6 @@
 
 package com.microsoft.azure.msalwebsample;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URLEncoder;
-import java.text.ParseException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import javax.annotation.PostConstruct;
-import javax.naming.ServiceUnavailableException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import com.microsoft.aad.msal4j.*;
 import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.oauth2.sdk.AuthorizationCode;
@@ -30,8 +11,34 @@ import com.nimbusds.openid.connect.sdk.AuthenticationResponse;
 import com.nimbusds.openid.connect.sdk.AuthenticationResponseParser;
 import com.nimbusds.openid.connect.sdk.AuthenticationSuccessResponse;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.aop.scope.ScopedProxyUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import javax.annotation.PostConstruct;
+import javax.naming.ServiceUnavailableException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.text.ParseException;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import static com.microsoft.azure.msalwebsample.SessionManagementHelper.FAILED_TO_VALIDATE_MESSAGE;
 
@@ -50,18 +57,38 @@ class AuthHelper {
     private String redirectUriSignIn;
     private String redirectUriGraph;
     private String msGraphEndpointHost;
+    private String privateKeyContent;
+    private InputStream certContent;
 
     @Autowired
     BasicConfiguration configuration;
 
     @PostConstruct
-    public void init() {
+    public void init() throws IOException {
         clientId = configuration.getClientId();
         authority = configuration.getAuthority();
         clientSecret = configuration.getSecretKey();
         redirectUriSignIn = configuration.getRedirectUriSignin();
         redirectUriGraph = configuration.getRedirectUriGraph();
         msGraphEndpointHost = configuration.getMsGraphEndpointHost();
+
+        System.out.println(">>>>>>>>>>>>>>>>>"+
+                "clientId="+ clientId+
+                "clientSecret="+ clientSecret+
+                "authority="+ authority+
+                "redirectUriSignIn="+ redirectUriSignIn+
+                "redirectUriGraph="+ redirectUriGraph+
+                "msGraphEndpointHost="+ msGraphEndpointHost);
+
+        certContent = StringUtils.isNotEmpty(configuration.getCertificate())
+            ? new FileInputStream(configuration.getCertificate()) : null;
+        privateKeyContent = StringUtils.isNotEmpty(configuration.getPrivateKey())
+                ? new String(Files.readAllBytes(Paths.get(configuration.getPrivateKey())))
+                    .replaceAll("\\n", "")
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                : null;
+        System.out.println(privateKeyContent);
     }
 
     void processAuthenticationCodeRedirect(HttpServletRequest httpRequest, String currentUri, String fullUrl)
@@ -206,10 +233,17 @@ class AuthHelper {
         return result;
     }
 
-    private ConfidentialClientApplication createClientApplication() throws MalformedURLException {
-        return ConfidentialClientApplication.builder(clientId, ClientCredentialFactory.createFromSecret(clientSecret)).
-                authority(authority).
-                build();
+    private ConfidentialClientApplication createClientApplication()
+            throws MalformedURLException, CertificateException, NoSuchAlgorithmException, InvalidKeySpecException {
+        return ConfidentialClientApplication
+                .builder(clientId, null != privateKeyContent ? getCertificate() : ClientCredentialFactory.createFromSecret(clientSecret))
+                .authority(authority).build();
+    }
+
+    private IClientCertificate getCertificate() throws InvalidKeySpecException, NoSuchAlgorithmException, CertificateException {
+        return ClientCredentialFactory.createFromCertificate(
+                KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKeyContent))),
+                (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(certContent));
     }
 
     private static boolean isAuthenticationSuccessful(AuthenticationResponse authResponse) {

@@ -20,6 +20,8 @@ class BasicConfiguration {
     private String redirectUriGraph;
     private String secretKey;
     private String msGraphEndpointHost;
+    private String privateKey;
+    private String certificate;
 
     public String getAuthority(){
         if (!authority.endsWith("/")) {
@@ -70,5 +72,21 @@ class BasicConfiguration {
 
     public String getMsGraphEndpointHost(){
         return msGraphEndpointHost;
+    }
+
+    public String getCertificate() {
+        return certificate;
+    }
+
+    public String getPrivateKey() {
+        return privateKey;
+    }
+
+    public void setPrivateKey(String privateKey) {
+        this.privateKey = privateKey;
+    }
+
+    public void setCertificate(String certificate) {
+        this.certificate = certificate;
     }
 }

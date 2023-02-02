@@ -77,6 +77,8 @@ class SessionManagementHelper {
     }
 
     static void setSessionPrincipal(HttpServletRequest httpRequest, IAuthenticationResult result) {
+        System.out.println(">>>>>>>>>>>>>>>>>setSessionPrincipal");
+
         httpRequest.getSession().setAttribute(AuthHelper.PRINCIPAL_SESSION_NAME, result);
     }
 

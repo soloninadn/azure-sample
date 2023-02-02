@@ -32,7 +32,7 @@ public class AuthFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response,
                          FilterChain chain) throws IOException, ServletException {
-
+        System.out.println("!!!!!!!!!!!!!!!!!!! doFilter");
         if (request instanceof HttpServletRequest) {
             HttpServletRequest httpRequest = (HttpServletRequest) request;
             HttpServletResponse httpResponse = (HttpServletResponse) response;
@@ -42,13 +42,18 @@ public class AuthFilter implements Filter {
                 String queryStr = httpRequest.getQueryString();
                 String fullUrl = currentUri + (queryStr != null ? "?" + queryStr : "");
 
+                System.out.println("!!!!!!!!!!!!!!!!!!! doFilter: path="+path+" post="
+                    +httpRequest.getMethod().equalsIgnoreCase("POST"));
+                System.out.println("processRequest>>>> aad="+httpRequest.getQueryString());
                 // exclude home page
                 if(excludedUrls.contains(path)){
+                    System.out.println("!!!!!!!!!!!!!!!!!!! doFilter: excludedUrls");
                     chain.doFilter(request, response);
                     return;
                 }
 
                 if(containsAuthenticationCode(httpRequest)){
+                    System.out.println("!!!!!!!!!!!!!!!!!!! doFilter: containsAuthenticationCode");
                     // response should have authentication code, which will be used to acquire access token
                     authHelper.processAuthenticationCodeRedirect(httpRequest, currentUri, fullUrl);
 
@@ -61,6 +66,7 @@ public class AuthFilter implements Filter {
 
                 // check if user has a AuthData in the session
                 if (!isAuthenticated(httpRequest)) {
+                    System.out.println("!!!!!!!!!!!!!!!!!!! doFilter: isAuthenticated=false");
                         // not authenticated, redirecting to login.microsoft.com so user can authenticate
                         authHelper.sendAuthRedirect(
                                 httpRequest,
@@ -74,6 +80,7 @@ public class AuthFilter implements Filter {
                     updateAuthDataUsingSilentFlow(httpRequest, httpResponse);
                 }
             } catch (MsalException authException) {
+                System.out.println("!!!!!!!!!!!!!!!!!!! doFilter: authException");
                 // something went wrong (like expiration or revocation of token)
                 // we should invalidate AuthData stored in session and redirect to Authorization server
                 SessionManagementHelper.removePrincipalFromSession(httpRequest);
@@ -91,6 +98,7 @@ public class AuthFilter implements Filter {
                 return;
             }
         }
+        System.out.println("!!!!!!!!!!!!!!!!!!! doFilter: next");
         chain.doFilter(request, response);
     }
 
@@ -102,6 +110,8 @@ public class AuthFilter implements Filter {
         boolean containIdToken = httpParameters.containsKey("id_token");
         boolean containsCode = httpParameters.containsKey("code");
 
+        System.out.println("isPostRequest && containsErrorData || containsCode || containIdToken"+
+                isPostRequest +":"+ containsErrorData +":"+ containsCode +":"+ containIdToken);
         return isPostRequest && containsErrorData || containsCode || containIdToken;
     }
 

@@ -39,10 +39,12 @@ public class AuthPageController {
 
     @RequestMapping("/msal4jsample/secure/aad")
     public ModelAndView securePage(HttpServletRequest httpRequest) throws ParseException {
+
+        System.out.println("!!!!!!!!!!!!!!!!!!! securePage");
         ModelAndView mav = new ModelAndView("auth_page");
 
         setAccountInfo(mav, httpRequest);
-
+        System.out.println("!!!!!!!!!!!!!!!!!!!e securePage");
         return mav;
     }
 
@@ -61,7 +63,7 @@ public class AuthPageController {
     @RequestMapping("/msal4jsample/graph/me")
     public ModelAndView getUserFromGraph(HttpServletRequest httpRequest, HttpServletResponse httpResponse)
             throws Throwable {
-
+        System.out.println("!!!!!!!!!!!!!!!!!!! getUserFromGraph");
         IAuthenticationResult result;
         ModelAndView mav;
         try {
@@ -136,6 +138,12 @@ public class AuthPageController {
         String tenantId = JWTParser.parse(auth.idToken()).getJWTClaimsSet().getStringClaim("tid");
 
         model.addObject("tenantId", tenantId);
-        model.addObject("account", SessionManagementHelper.getAuthSessionObject(httpRequest).account());
+        IAccount account = SessionManagementHelper.getAuthSessionObject(httpRequest).account();
+
+        System.out.println(">>>>>>>>>>>>sess username="+account.username());
+        System.out.println(">>>>>>>>>>>>sess sess pr="+
+                httpRequest.getSession().getAttribute(AuthHelper.PRINCIPAL_SESSION_NAME));
+        System.out.println(">>>>>>>>>>>>sess pr="+httpRequest.getUserPrincipal());
+        model.addObject("account", account);
     }
 }
